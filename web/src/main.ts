@@ -85,7 +85,7 @@ app.innerHTML = `
     <label>OpenAI API key <input id="key" type="password" autocomplete="off" placeholder="sk-…" /></label>
     <div class="row"><button id="save-key" class="btn" type="button">${icon(Check, 18)} Save key</button><button id="clear-key" class="btn secondary" type="button">Remove</button><span id="key-status" class="status-line"></span></div>
     <label>Provider <select id="voice-provider"><option value="api">OpenAI API key (gpt-live-1 + gpt-5.6-luna)</option><option value="codex">Codex subscription via local bridge (gpt-live-1-codex + gpt-5.6-luna)</option></select></label>
-    <label id="bridge-row">Bridge URL <input id="bridge-url" type="url" placeholder="${DEFAULT_BRIDGE}" /></label>
+    <label id="bridge-row">Bridge URL <input id="bridge-url" type="url" placeholder="${DEFAULT_BRIDGE}" /><span class="hint">When the bridge is on your Tailscale network, the browser asks once to allow this site to reach devices on your local network. Allow it, or the conversation never connects.</span></label>
     <label>Learning language <select id="language"></select></label>
     <label>Meaning language <select id="meaning-language"></select></label>
     <label>Interests (optional) <input id="interests" type="text" placeholder="Music, cycling, film…" /></label>

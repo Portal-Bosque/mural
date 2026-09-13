@@ -8,7 +8,8 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "bridge": "node bridge/server.mjs"
+    "bridge": "node bridge/server.mjs",
+    "build:access": "tsc && VITE_BRIDGE_URL=/ VITE_DEFAULT_PROVIDER=codex vite build --outDir dist-access"
   },
   "devDependencies": {
     "typescript": "~6.0.2",

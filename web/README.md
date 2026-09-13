@@ -36,9 +36,19 @@ Then in Settings pick **Voice provider → Codex subscription via local bridge**
 
 Text requests (assessments, subtitles, lookups, delegated searches) also ride the subscription: the bridge's `/codex/responses` forwards them to the Codex backend with a token obtained from the app-server, which handles refresh. That backend requires streaming and rejects `max_output_tokens` and `max_tool_calls`, so the bridge streams, strips those, and rebuilds a plain Responses result from `response.output_item.done` events. `gpt-5.6-luna`, strict JSON schema and `web_search` with citations all work there. With the Codex provider selected no API key is needed at all. The bridge accepts requests from `http://localhost:5173` and the production origin (`MURAL_ORIGINS` to change), binds to loopback, and never exposes the Codex tokens.
 
-### Reaching the bridge from other devices
+### Self-hosting behind Cloudflare Access
 
-`tailscale serve --bg --https=8791 http://127.0.0.1:8790` publishes the bridge to your tailnet with a valid certificate; the page's CSP already allows `https://*.ts.net`. Set the build-time `VITE_BRIDGE_URL` (for example in the Vercel project) so the deployed page defaults to that URL, or paste it in Settings → Bridge URL on each device. Devices must be on the same tailnet. A LaunchAgent (see `bridge/launchd.plist.example`) keeps the bridge running on the Mac.
+The bridge can serve the page itself, so page and API share one origin behind one Cloudflare Access application (no CORS, no local-network prompts, the Access cookie rides along on every fetch and event stream):
+
+```sh
+npm run build:access        # page defaulting to the Codex provider and a same-origin bridge → dist-access/
+MURAL_STATIC=$PWD/dist-access CF_ACCESS_TEAM_DOMAIN=<team>.cloudflareaccess.com npm run bridge
+cloudflared tunnel create mural && cloudflared tunnel route dns mural mural.example.com   # ingress → http://127.0.0.1:8790
+```
+
+With `CF_ACCESS_TEAM_DOMAIN` set, every request that arrives through Cloudflare (`cf-ray` present) must carry a valid Access JWT (RS256, verified against the team's JWKS, `iss` checked, `CF_ACCESS_AUD` optional), so the hostname is closed until the Access application exists and denies anything that bypasses it. Local requests without Cloudflare headers are unaffected. Then create a self-hosted Access application for the hostname with an Allow policy (email one-time PIN is enough). `bridge/launchd.plist.example` shows the LaunchAgent that keeps the bridge running.
+
+Alternatively `tailscale serve --bg --https=8791 http://127.0.0.1:8790` publishes the bridge to a tailnet; the page's CSP allows `https://*.ts.net`, and `VITE_BRIDGE_URL` can default a build to it. Chrome treats Tailscale's 100.64/10 range as a local network and asks once for Local Network Access from the deployed page.
 
 ## Design
 

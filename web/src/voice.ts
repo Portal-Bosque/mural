@@ -5,8 +5,10 @@ export interface VoiceSettings { provider: VoiceProvider; bridgeURL: string; mod
 const KEY = 'mural.voice';
 // VITE_BRIDGE_URL (build-time) lets a deployment default to a bridge reachable from other devices, e.g. over Tailscale.
 export const DEFAULT_BRIDGE: string = (import.meta.env.VITE_BRIDGE_URL as string | undefined) || 'http://localhost:8790';
+// VITE_DEFAULT_PROVIDER=codex makes a build default to the subscription (used for the self-hosted, Access-protected deployment).
+const DEFAULT_PROVIDER: VoiceProvider = (import.meta.env.VITE_DEFAULT_PROVIDER as string | undefined) === 'codex' ? 'codex' : 'api';
 export function loadVoiceSettings(): VoiceSettings {
-  try { return { provider: 'api', bridgeURL: DEFAULT_BRIDGE, model: 'gpt-live-1-codex', ...JSON.parse(localStorage.getItem(KEY) ?? '{}') }; }
-  catch { return { provider: 'api', bridgeURL: DEFAULT_BRIDGE, model: 'gpt-live-1-codex' }; }
+  try { return { provider: DEFAULT_PROVIDER, bridgeURL: DEFAULT_BRIDGE, model: 'gpt-live-1-codex', ...JSON.parse(localStorage.getItem(KEY) ?? '{}') }; }
+  catch { return { provider: DEFAULT_PROVIDER, bridgeURL: DEFAULT_BRIDGE, model: 'gpt-live-1-codex' }; }
 }
 export function saveVoiceSettings(s: VoiceSettings) { try { localStorage.setItem(KEY, JSON.stringify(s)); } catch {} }
