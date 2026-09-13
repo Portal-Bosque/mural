@@ -9,8 +9,8 @@
     <key>PATH</key><string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
     <!-- Serve the Access-mode build from the same origin as the API (npm run build:access). -->
     <key>MURAL_STATIC</key><string>/path/to/mural/web/dist-access</string>
-    <!-- Require a valid Cloudflare Access JWT on every request that arrives through Cloudflare. -->
-    <key>CF_ACCESS_TEAM_DOMAIN</key><string>your-team.cloudflareaccess.com</string>
+    <!-- Optional: require a valid Cloudflare Access JWT on every request that arrives through Cloudflare. Leave out for a public site. -->
+    <!-- <key>CF_ACCESS_TEAM_DOMAIN</key><string>your-team.cloudflareaccess.com</string> -->
     <!-- Optional: the Access application's AUD tag. -->
     <!-- <key>CF_ACCESS_AUD</key><string>…</string> -->
   </dict>

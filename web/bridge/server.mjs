@@ -17,6 +17,8 @@ const STATIC_DIR = process.env.MURAL_STATIC ? resolve(process.env.MURAL_STATIC) 
 // (cookie CF_Authorization or header cf-access-jwt-assertion) issued by CF_ACCESS_TEAM_DOMAIN, optionally for CF_ACCESS_AUD.
 const CF_TEAM = process.env.CF_ACCESS_TEAM_DOMAIN ?? null;
 const CF_AUD = process.env.CF_ACCESS_AUD ?? null;
+// Abuse limits for a public deployment (per client IP and global). Override with MURAL_LIMITS as JSON.
+const LIMITS = { sessionsPerHourPerIP: 4, concurrentPerIP: 1, concurrentGlobal: 4, responsesPer10MinPerIP: 90, ...JSON.parse(process.env.MURAL_LIMITS ?? '{}') };
 const V3_VOICES = new Set(['juniper', 'maple', 'spruce', 'ember', 'vale', 'breeze', 'arbor', 'sol', 'cove']);
 const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
 
@@ -65,11 +67,14 @@ codex.on((method, params) => {
   if (method !== 'thread/realtime/sdp') log('←', method, JSON.stringify(params).slice(0, 160));
   s.backlog.push(event); if (s.backlog.length > 500) s.backlog.shift();
   for (const res of s.sinks) res.write(`data: ${JSON.stringify(event)}\n\n`);
-  if (method === 'thread/realtime/closed') { for (const res of s.sinks) res.end(); setTimeout(() => sessions.delete(s.id), 60_000); }
+  if (method === 'thread/realtime/closed') { s.closed = true; for (const res of s.sinks) res.end(); setTimeout(() => sessions.delete(s.id), 60_000); }
 });
 
-async function createSession(body) {
+async function createSession(body, ip = 'local') {
   await codex.ready;
+  if (activeGlobal() >= LIMITS.concurrentGlobal) throw Object.assign(new Error('Mural is busy right now; try again in a few minutes.'), { status: 429 });
+  if (activeByIP(ip) >= LIMITS.concurrentPerIP) throw Object.assign(new Error('You already have a conversation running.'), { status: 429 });
+  if (!allow(`sess:${ip}`, LIMITS.sessionsPerHourPerIP, 3600_000)) throw Object.assign(new Error('Conversation limit reached for now; try again later.'), { status: 429 });
   const session = body?.session ?? {}, transport = body?.transport ?? {};
   if (transport.type !== 'webrtc' || typeof transport.sdp !== 'string') throw Object.assign(new Error('transport.sdp (webrtc) required'), { status: 400 });
   const instructions = String(session.instructions ?? '');
@@ -78,7 +83,7 @@ async function createSession(body) {
   const threadId = thread.thread.id;
   const initialItems = [{ role: 'developer', text: instructions }];
   for (const item of Array.isArray(session.input) ? session.input : []) if (item && typeof item.text === 'string' && ['user', 'assistant', 'developer'].includes(item.role)) initialItems.push({ role: item.role, text: item.text });
-  const record = { id: null, threadId, sinks: new Set(), backlog: [] };
+  const record = { id: null, threadId, sinks: new Set(), backlog: [], ip, closed: false, startedAt: Date.now() };
   const started = new Promise((resolve, reject) => {
     const off = codex.on((method, params) => {
       if (params.threadId !== threadId) return;
@@ -94,6 +99,7 @@ async function createSession(body) {
     const answer = await started;
     const id = record.id ?? threadId; record.id = id; sessions.delete(threadId); sessions.set(id, record);
     log(`session ${id} started (thread ${threadId}, voice ${voice}, model ${session.model ?? MODEL})`);
+    setTimeout(() => { if (!record.closed) { log(`session ${id} hard cap reached, stopping`); codex.request('thread/realtime/stop', { threadId }).catch(() => {}); } }, 20 * 60_000).unref();
     return { session: { id, model: session.model ?? MODEL, voice, provider: 'codex-subscription' }, transport: { type: 'webrtc', sdp: answer } };
   } catch (e) { sessions.delete(threadId); codex.request('thread/realtime/stop', { threadId }).catch(() => {}); throw e; }
 }
@@ -179,6 +185,18 @@ async function serveStatic(pathname, res) {
   } catch { res.writeHead(404); res.end('not found'); }
 }
 
+// ---------- rate limiting ----------
+const clientIP = req => String(req.headers['cf-connecting-ip'] ?? req.headers['x-forwarded-for'] ?? req.socket.remoteAddress ?? 'unknown').split(',')[0].trim();
+const windows = new Map(); // key → timestamps
+function allow(key, max, windowMs) {
+  const now = Date.now(); const list = (windows.get(key) ?? []).filter(t => now - t < windowMs);
+  if (list.length >= max) { windows.set(key, list); return false; }
+  list.push(now); windows.set(key, list); return true;
+}
+setInterval(() => { const now = Date.now(); for (const [k, v] of windows) if (!v.some(t => now - t < 3600_000)) windows.delete(k); }, 600_000).unref();
+const activeByIP = ip => [...sessions.values()].filter(s => s.ip === ip && !s.closed).length;
+const activeGlobal = () => [...sessions.values()].filter(s => !s.closed).length;
+
 // ---------- http ----------
 const json = (res, status, body, origin) => { res.writeHead(status, { 'Content-Type': 'application/json', ...cors(origin) }); res.end(JSON.stringify(body)); };
 const cors = origin => ALLOWED_ORIGINS.includes(origin) ? { 'Access-Control-Allow-Origin': origin, 'Access-Control-Allow-Headers': 'content-type', 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS', Vary: 'Origin' } : {};
@@ -194,8 +212,11 @@ createServer(async (req, res) => {
   if (!gate.ok) { log('access denied', url.pathname, req.headers['cf-connecting-ip'] ?? ''); return json(res, 401, { error: 'Cloudflare Access authentication required' }, origin); }
   try {
     if (req.method === 'GET' && url.pathname === '/healthz') { await codex.ready; return json(res, 200, { ok: true, model: MODEL, sessions: sessions.size, access: CF_TEAM ? 'enforced' : 'off', user: gate.user }, origin); }
-    if (req.method === 'POST' && url.pathname === '/codex/live/sessions') return json(res, 200, await createSession(await readBody(req)), origin);
-    if (req.method === 'POST' && url.pathname === '/codex/responses') { const body = await readBody(req); const t0 = Date.now(); const r = await proxyResponses(body); log(`responses ${body.model} → ${r.status}, ${r.output.length} items, ${r.usage.total_tokens} tokens, ${Date.now() - t0}ms`); return json(res, 200, r, origin); }
+    const ip = clientIP(req);
+    if (req.method === 'POST' && url.pathname === '/codex/live/sessions') { const r = await createSession(await readBody(req), ip); log(`session for ${ip}`); return json(res, 200, r, origin); }
+    if (req.method === 'POST' && url.pathname === '/codex/responses') {
+      if (!allow(`resp:${ip}`, LIMITS.responsesPer10MinPerIP, 600_000)) return json(res, 429, { error: 'Too many requests; slow down a little.' }, origin);
+      const body = await readBody(req); const t0 = Date.now(); const r = await proxyResponses(body); log(`responses ${body.model} → ${r.status}, ${r.output.length} items, ${r.usage.total_tokens} tokens, ${Date.now() - t0}ms`); return json(res, 200, r, origin); }
     const m = url.pathname.match(/^\/codex\/live\/sessions\/([^/]+)\/(events|stop|append)$/);
     if (m) {
       const s = sessions.get(decodeURIComponent(m[1])); if (!s) return json(res, 404, { error: 'unknown session' }, origin);
