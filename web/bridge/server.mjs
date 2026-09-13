@@ -18,7 +18,7 @@ const STATIC_DIR = process.env.MURAL_STATIC ? resolve(process.env.MURAL_STATIC) 
 const CF_TEAM = process.env.CF_ACCESS_TEAM_DOMAIN ?? null;
 const CF_AUD = process.env.CF_ACCESS_AUD ?? null;
 // Abuse limits for a public deployment (per client IP and global). Override with MURAL_LIMITS as JSON.
-const LIMITS = { sessionsPerHourPerIP: 4, concurrentPerIP: 1, concurrentGlobal: 4, responsesPer10MinPerIP: 90, ...JSON.parse(process.env.MURAL_LIMITS ?? '{}') };
+const LIMITS = { sessionsPerHourPerIP: 30, concurrentPerIP: 3, concurrentGlobal: 8, responsesPer10MinPerIP: 240, ...JSON.parse(process.env.MURAL_LIMITS ?? '{}') };
 const V3_VOICES = new Set(['juniper', 'maple', 'spruce', 'ember', 'vale', 'breeze', 'arbor', 'sol', 'cove']);
 const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
 
