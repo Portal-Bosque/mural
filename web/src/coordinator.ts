@@ -8,6 +8,7 @@ import { LearningEngine } from './core/engine';
 import { MeaningController, meaningRequest, requestCacheKey } from './core/meaning';
 import { FinalAssessmentQueue, applyFinalResult, type FinalAssessmentResult } from './core/assessment-queue';
 import type { LearningStore } from './storage';
+import { loadVoiceSettings } from './voice';
 
 interface APIUsageLike { input: number; output: number; searches: number }
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
@@ -90,7 +91,8 @@ export class Coordinator {
 
   async start() {
     if (this.isRunning) return;
-    if (!CredentialStore.hasKey) { this.error = 'Add your OpenAI key in Settings first.'; this.onChange?.(); return; }
+    const voice = loadVoiceSettings();
+    if (voice.provider === 'api' && !CredentialStore.hasKey) { this.error = 'Add your OpenAI key in Settings first.'; this.onChange?.(); return; }
     this.cancelReset(); this.meanings.reset();
     this.error = undefined; this.notice = undefined; this.lastAssessmentKey = ''; this.step = '';
     this.state = 'connecting'; this.delegations.clear();
@@ -101,9 +103,10 @@ export class Coordinator {
     const prefs = this.store.preferences;
     // Each new conversation starts fresh; learned vocabulary and difficulty still carry forward.
     const instructions = TeachingPolicy.voice(this.language, learner, this.selectedTheme, prefs.interests, prefs.meaningLanguage);
-    this.trace(`connecting: ${this.language.name}${this.selectedTheme ? ' / ' + this.selectedTheme.title : ''} · challenge ${learner.challenge} · ${learner.words.length} words known`);
+    this.trace(`connecting: ${this.language.name}${this.selectedTheme ? ' / ' + this.selectedTheme.title : ''} · challenge ${learner.challenge} · ${learner.words.length} words known · voice via ${voice.provider === 'codex' ? voice.model + ' (codex subscription)' : 'gpt-live-1 (API key)'}`);
+    if (voice.provider === 'codex' && !CredentialStore.hasKey) this.notice = 'Voice runs on the Codex subscription. Add an API key for meaning subtitles and learning assessments.';
     this.onChange?.();
-    try { await this.transport.connect(this.api, instructions, []); }
+    try { await this.transport.connect(this.api, instructions, [], voice); }
     catch (e: any) {
       if (e?.name === 'AbortError') return;
       if (generation === this.generation && this.session?.id === record.id && (this.state === 'connecting' || this.state === 'active')) this.fail(e?.message ?? String(e));

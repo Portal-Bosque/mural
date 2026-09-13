@@ -21,6 +21,20 @@ Open http://localhost:5173, expand **Settings**, paste your OpenAI key, pick a l
 - Client delegation: lookups via `gpt-5.6-luna` with web search, returned as `session.commentary.append`.
 - Persistence in IndexedDB (one JSON document, like SwiftData in the app), Words and Conversations panels, export/import. The backup format is the iOS app's (schema 2, dates as seconds since 2001), so backups move between iPhone and web.
 - Mute, "simpler please", end, time limit and inactivity cut-off.
+- Voice via the Codex subscription (`gpt-live-1-codex`) through the local bridge in `bridge/`.
+
+## Voice through the Codex subscription
+
+Instead of an API key, voice can run on `gpt-live-1-codex` with a ChatGPT/Codex subscription. OpenAI's platform API refuses voice sessions for subscription tokens (`403 Voice session access denied`), so the browser goes through a small local bridge that drives `codex app-server` (JSON-RPC over stdio, `thread/realtime/*`, feature `realtime_conversation`):
+
+```sh
+codex login          # once, ChatGPT account
+npm run bridge       # http://127.0.0.1:8790
+```
+
+Then in Settings pick **Voice provider → Codex subscription via local bridge**. The bridge only brokers signalling and events: it starts an ephemeral thread, passes the browser's SDP offer to `thread/realtime/start`, returns the answer, and relays `thread/realtime/*` notifications (transcripts, errors, close) as server-sent events. Audio still flows WebRTC between the browser and OpenAI. Teaching instructions go in as the thread's developer instructions and initial items; mid-conversation nudges use `thread/realtime/appendText`. v3 voices are `cove` (default), juniper, maple, spruce, ember, vale, breeze, arbor and sol.
+
+Assessments, subtitles and lookups still call `gpt-5.6-luna` with the API key; without one, voice works alone. The bridge accepts requests from `http://localhost:5173` and the production origin (`MURAL_ORIGINS` to change), binds to loopback, and never exposes the Codex tokens.
 
 ## Design
 

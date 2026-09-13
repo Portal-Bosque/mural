@@ -6,6 +6,7 @@ import { passageText, sessionPassages } from './core/models';
 import { levelLabel, wordLabel, wordExplanation } from './core/engine';
 import { LearningStore } from './storage';
 import { Coordinator } from './coordinator';
+import { loadVoiceSettings, saveVoiceSettings, DEFAULT_BRIDGE } from './voice';
 
 // SF Symbols used by the iOS app → Lucide equivalents.
 const SYMBOLS: Record<string, IconNode> = {
@@ -83,6 +84,8 @@ app.innerHTML = `
     <h2>Settings</h2>
     <label>OpenAI API key <input id="key" type="password" autocomplete="off" placeholder="sk-…" /></label>
     <div class="row"><button id="save-key" class="btn" type="button">${icon(Check, 18)} Save key</button><button id="clear-key" class="btn secondary" type="button">Remove</button><span id="key-status" class="status-line"></span></div>
+    <label>Voice provider <select id="voice-provider"><option value="api">OpenAI API key (gpt-live-1)</option><option value="codex">Codex subscription via local bridge (gpt-live-1-codex)</option></select></label>
+    <label id="bridge-row">Bridge URL <input id="bridge-url" type="url" placeholder="${DEFAULT_BRIDGE}" /></label>
     <label>Learning language <select id="language"></select></label>
     <label>Meaning language <select id="meaning-language"></select></label>
     <label>Interests (optional) <input id="interests" type="text" placeholder="Music, cycling, film…" /></label>
@@ -142,8 +145,12 @@ $<HTMLInputElement>('import').onchange = async e => {
   (e.target as HTMLInputElement).value = ''; renderWords(); render(); openSettings(false);
 };
 $('delete-all').onclick = () => { if (confirm('Delete all conversations and learned words from this browser?')) { coordinator.deleteLearningData(); renderWords(); render(); openSettings(false); } };
+const providerSelect = $<HTMLSelectElement>('voice-provider'), bridgeInput = $<HTMLInputElement>('bridge-url');
+providerSelect.onchange = () => { const v = loadVoiceSettings(); v.provider = providerSelect.value as 'api' | 'codex'; saveVoiceSettings(v); renderSettings(); };
+bridgeInput.onchange = () => { const v = loadVoiceSettings(); v.bridgeURL = bridgeInput.value.trim() || DEFAULT_BRIDGE; saveVoiceSettings(v); renderSettings(); };
 function renderSettings() {
-  const p = store.preferences;
+  const p = store.preferences, v = loadVoiceSettings();
+  providerSelect.value = v.provider; bridgeInput.value = v.bridgeURL; $('bridge-row').hidden = v.provider !== 'codex';
   languageSelect.value = p.learningLanguageID; meaningSelect.value = p.meaningLanguage;
   $<HTMLInputElement>('interests').value = p.interests; $<HTMLInputElement>('minutes').value = String(p.sessionMinutes);
   const err = $('store-error'); err.hidden = !store.error; err.textContent = store.error ?? '';
