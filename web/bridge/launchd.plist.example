@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copy to ~/Library/LaunchAgents/chat.mural.bridge.plist, adjust paths, then: launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/chat.mural.bridge.plist -->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>Label</key><string>chat.mural.bridge</string>
+  <key>ProgramArguments</key><array><string>/usr/local/bin/node</string><string>/path/to/mural/web/bridge/server.mjs</string></array>
+  <key>WorkingDirectory</key><string>/path/to/mural/web</string>
+  <key>EnvironmentVariables</key><dict><key>PATH</key><string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string></dict>
+  <key>RunAtLoad</key><true/><key>KeepAlive</key><true/>
+  <key>StandardOutPath</key><string>/tmp/mural-bridge.log</string><key>StandardErrorPath</key><string>/tmp/mural-bridge.log</string>
+</dict></plist>

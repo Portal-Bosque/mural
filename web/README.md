@@ -36,6 +36,10 @@ Then in Settings pick **Voice provider → Codex subscription via local bridge**
 
 Text requests (assessments, subtitles, lookups, delegated searches) also ride the subscription: the bridge's `/codex/responses` forwards them to the Codex backend with a token obtained from the app-server, which handles refresh. That backend requires streaming and rejects `max_output_tokens` and `max_tool_calls`, so the bridge streams, strips those, and rebuilds a plain Responses result from `response.output_item.done` events. `gpt-5.6-luna`, strict JSON schema and `web_search` with citations all work there. With the Codex provider selected no API key is needed at all. The bridge accepts requests from `http://localhost:5173` and the production origin (`MURAL_ORIGINS` to change), binds to loopback, and never exposes the Codex tokens.
 
+### Reaching the bridge from other devices
+
+`tailscale serve --bg --https=8791 http://127.0.0.1:8790` publishes the bridge to your tailnet with a valid certificate; the page's CSP already allows `https://*.ts.net`. Set the build-time `VITE_BRIDGE_URL` (for example in the Vercel project) so the deployed page defaults to that URL, or paste it in Settings → Bridge URL on each device. Devices must be on the same tailnet. A LaunchAgent (see `bridge/launchd.plist.example`) keeps the bridge running on the Mac.
+
 ## Design
 
 The layout follows the iPhone app (Talk / Themes / Words tabs, orb, meaning subtitle, theme cards, recall bars) using the Portal Bosque design system: paper `#F0F0EA`, forest green `#34504E`, accent `#DF441B`, earth `#643C37`, the `topic_*` tints for theme cards, Inter for UI text, PP Editorial New for display titles and Montiac for the wordmark and labels. Tokens live at the top of `src/style.css` and mirror `portal-agenda/tailwind.config.js`. Icons are Lucide, mapped from the app's SF Symbols in `src/main.ts`.
