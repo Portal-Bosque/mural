@@ -146,6 +146,7 @@ $<HTMLInputElement>('import').onchange = async e => {
 };
 $('delete-all').onclick = () => { if (confirm('Delete all conversations and learned words from this browser?')) { coordinator.deleteLearningData(); renderWords(); render(); openSettings(false); } };
 const providerSelect = $<HTMLSelectElement>('voice-provider'), bridgeInput = $<HTMLInputElement>('bridge-url');
+const canStart = () => loadVoiceSettings().provider === 'codex' || CredentialStore.hasKey;
 providerSelect.onchange = () => { const v = loadVoiceSettings(); v.provider = providerSelect.value as 'api' | 'codex'; saveVoiceSettings(v); renderSettings(); };
 bridgeInput.onchange = () => { const v = loadVoiceSettings(); v.bridgeURL = bridgeInput.value.trim() || DEFAULT_BRIDGE; saveVoiceSettings(v); renderSettings(); };
 function renderSettings() {
@@ -160,7 +161,7 @@ function renderSettings() {
 // ---------- Talk ----------
 $('btn-mic').onclick = () => {
   if (coordinator.state === 'active') coordinator.toggleMute();
-  else if (!coordinator.isRunning) { if (!CredentialStore.hasKey) openSettings(true); else coordinator.start(); }
+  else if (!coordinator.isRunning) { if (!canStart()) openSettings(true); else coordinator.start(); }
 };
 $('btn-meaning').onclick = () => coordinator.toggleMeaning();
 $('btn-right').onclick = () => { if (coordinator.state === 'active' || coordinator.state === 'connecting') coordinator.end(); else { const p = $('transcript-panel'); p.hidden = !p.hidden; } };
@@ -216,7 +217,7 @@ const categories = ['All', 'Everyday', 'Connection', 'Local life', 'Interests'];
 function pickTheme(theme?: ConversationTheme) {
   if (coordinator.isRunning) { coordinator.chooseTheme(theme); showTab('talk'); return; }
   coordinator.chooseTheme(theme); showTab('talk');
-  if (CredentialStore.hasKey) coordinator.start(); else openSettings(true);
+  if (canStart()) coordinator.start(); else openSettings(true);
 }
 $('just-talk').onclick = () => pickTheme(undefined);
 $<HTMLInputElement>('theme-search').oninput = () => renderThemes();
