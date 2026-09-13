@@ -1,13 +1,14 @@
 // Port of App/APIClient.swift on top of fetch. The key lives only in the browser's storage for this origin.
 import { safeURL } from './core/models';
 import type { LanguageModule } from './core/languages';
+import { loadVoiceSettings } from './voice';
 export { safeURL };
 export interface APIUsage { input: number; output: number; searches: number }
 export interface SourceLink { title: string; url: string }
 export interface APIResult { text: string; sources: SourceLink[]; usage: APIUsage }
 
 export class APIError extends Error {
-  constructor(public kind: 'missingKey' | 'invalidResponse' | 'incomplete' | 'refused' | 'http', public status = 0) {
+  constructor(public kind: 'missingKey' | 'invalidResponse' | 'incomplete' | 'refused' | 'http' | 'bridge', public status = 0) {
     super(APIError.describe(kind, status)); this.name = 'APIError';
   }
   static describe(kind: string, status: number) {
@@ -15,6 +16,7 @@ export class APIError extends Error {
       case 'missingKey': return 'Add your OpenAI key in Settings to begin.';
       case 'invalidResponse': case 'incomplete': return 'OpenAI returned an incomplete response. Please try again.';
       case 'refused': return 'Mural couldn’t complete that request. Try a different topic.';
+      case 'bridge': return 'The Codex bridge didn’t answer. Start it with `npm run bridge` in web/ and check the URL in Settings.';
     }
     if (status === 401) return 'Your OpenAI key wasn’t accepted. Check it in Settings.';
     if (status === 403 || status === 404) return 'This API key may not have access to the requested model. Check your OpenAI project.';
@@ -37,6 +39,15 @@ export const CredentialStore = {
 
 export class APIClient {
   async post(path: string, body: unknown, signal?: AbortSignal): Promise<any> {
+    const voice = loadVoiceSettings();
+    if (voice.provider === 'codex' && path === 'responses') {
+      // Text requests ride the Codex subscription through the local bridge, which assembles the streamed response.
+      const response = await fetch(voice.bridgeURL.replace(/\/$/, '') + '/codex/responses', {
+        method: 'POST', signal: signal ?? AbortSignal.timeout(120_000), headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+      }).catch(() => { throw new APIError('bridge'); });
+      if (!response.ok) { const detail = await response.json().catch(() => ({})); const err = new APIError('bridge'); err.message += ` (${detail?.error ?? response.status})`; throw err; }
+      return response.json().catch(() => { throw new APIError('invalidResponse'); });
+    }
     const key = CredentialStore.read();
     if (!key) throw new APIError('missingKey');
     const response = await fetch('https://api.openai.com/v1/' + path, {

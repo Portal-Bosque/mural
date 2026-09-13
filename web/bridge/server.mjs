@@ -89,6 +89,41 @@ async function createSession(body) {
   } catch (e) { sessions.delete(threadId); codex.request('thread/realtime/stop', { threadId }).catch(() => {}); throw e; }
 }
 
+// ---------- Responses API through the subscription ----------
+// The Codex backend requires streaming and omits `output` from `response.completed`, so the bridge assembles a
+// non-streaming Responses-shaped result from `response.output_item.done` events for the browser's APIClient.
+const CODEX_RESPONSES = 'https://chatgpt.com/backend-api/codex/responses';
+const decodeAccountId = token => { try { const c = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString()); return c['https://api.openai.com/auth']?.chatgpt_account_id ?? null; } catch { return null; } };
+async function subscriptionAuth(refresh = false) {
+  await codex.ready;
+  const status = await codex.request('getAuthStatus', { includeToken: true, refreshToken: refresh });
+  if (status.authMethod !== 'chatgpt' || !status.authToken) throw Object.assign(new Error('codex is not logged in with ChatGPT (run `codex login`)'), { status: 503 });
+  return { token: status.authToken, accountId: decodeAccountId(status.authToken) };
+}
+async function proxyResponses(body, attempt = 0) {
+  const { token, accountId } = await subscriptionAuth(attempt > 0);
+  const { max_tool_calls: _a, max_output_tokens: _b, ...rest } = body ?? {}; // unsupported by the Codex backend
+  const upstream = await fetch(CODEX_RESPONSES, { method: 'POST', signal: AbortSignal.timeout(120_000),
+    headers: { Authorization: `Bearer ${token}`, ...(accountId ? { 'chatgpt-account-id': accountId } : {}), 'Content-Type': 'application/json', 'User-Agent': 'codex_cli_rs/0.149.0 (mural-bridge)' },
+    body: JSON.stringify({ ...rest, stream: true }) });
+  if (upstream.status === 401 && attempt === 0) { await upstream.body?.cancel(); return proxyResponses(body, 1); }
+  if (!upstream.ok) { const detail = await upstream.text(); throw Object.assign(new Error(`codex backend ${upstream.status}: ${detail.slice(0, 300)}`), { status: upstream.status }); }
+  const output = []; let completed = null, failed = null, buffer = '';
+  const handle = line => {
+    if (!line.startsWith('data: ')) return; const data = line.slice(6).trim(); if (!data || data === '[DONE]') return;
+    let e; try { e = JSON.parse(data); } catch { return; }
+    if (e.type === 'response.output_item.done' && e.item) output.push(e.item);
+    else if (e.type === 'response.completed') completed = e.response;
+    else if (e.type === 'response.failed' || e.type === 'response.incomplete' || e.type === 'error') failed = e;
+  };
+  for await (const chunk of upstream.body) { buffer += Buffer.from(chunk).toString(); let i; while ((i = buffer.indexOf('\n')) >= 0) { handle(buffer.slice(0, i)); buffer = buffer.slice(i + 1); } }
+  if (buffer) handle(buffer);
+  if (failed && !completed) throw Object.assign(new Error(`response ${failed.type}: ${JSON.stringify(failed.response?.error ?? failed.error ?? failed).slice(0, 300)}`), { status: 502 });
+  const usage = completed?.usage ?? {};
+  return { id: completed?.id ?? null, object: 'response', status: completed ? 'completed' : 'incomplete', model: completed?.model ?? rest.model, output,
+    usage: { input_tokens: usage.input_tokens ?? 0, output_tokens: usage.output_tokens ?? 0, total_tokens: usage.total_tokens ?? 0 }, provider: 'codex-subscription' };
+}
+
 // ---------- http ----------
 const json = (res, status, body, origin) => { res.writeHead(status, { 'Content-Type': 'application/json', ...cors(origin) }); res.end(JSON.stringify(body)); };
 const cors = origin => ALLOWED_ORIGINS.includes(origin) ? { 'Access-Control-Allow-Origin': origin, 'Access-Control-Allow-Headers': 'content-type', 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS', Vary: 'Origin' } : {};
@@ -102,6 +137,7 @@ createServer(async (req, res) => {
   try {
     if (req.method === 'GET' && url.pathname === '/healthz') { await codex.ready; return json(res, 200, { ok: true, model: MODEL, sessions: sessions.size }, origin); }
     if (req.method === 'POST' && url.pathname === '/codex/live/sessions') return json(res, 200, await createSession(await readBody(req)), origin);
+    if (req.method === 'POST' && url.pathname === '/codex/responses') { const body = await readBody(req); const t0 = Date.now(); const r = await proxyResponses(body); log(`responses ${body.model} → ${r.status}, ${r.output.length} items, ${r.usage.total_tokens} tokens, ${Date.now() - t0}ms`); return json(res, 200, r, origin); }
     const m = url.pathname.match(/^\/codex\/live\/sessions\/([^/]+)\/(events|stop|append)$/);
     if (m) {
       const s = sessions.get(decodeURIComponent(m[1])); if (!s) return json(res, 404, { error: 'unknown session' }, origin);

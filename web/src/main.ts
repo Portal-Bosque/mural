@@ -84,7 +84,7 @@ app.innerHTML = `
     <h2>Settings</h2>
     <label>OpenAI API key <input id="key" type="password" autocomplete="off" placeholder="sk-…" /></label>
     <div class="row"><button id="save-key" class="btn" type="button">${icon(Check, 18)} Save key</button><button id="clear-key" class="btn secondary" type="button">Remove</button><span id="key-status" class="status-line"></span></div>
-    <label>Voice provider <select id="voice-provider"><option value="api">OpenAI API key (gpt-live-1)</option><option value="codex">Codex subscription via local bridge (gpt-live-1-codex)</option></select></label>
+    <label>Provider <select id="voice-provider"><option value="api">OpenAI API key (gpt-live-1 + gpt-5.6-luna)</option><option value="codex">Codex subscription via local bridge (gpt-live-1-codex + gpt-5.6-luna)</option></select></label>
     <label id="bridge-row">Bridge URL <input id="bridge-url" type="url" placeholder="${DEFAULT_BRIDGE}" /></label>
     <label>Learning language <select id="language"></select></label>
     <label>Meaning language <select id="meaning-language"></select></label>
@@ -95,7 +95,7 @@ app.innerHTML = `
       <label class="file">${icon(Upload, 18)} Import backup <input id="import" type="file" accept="application/json,.json" hidden /></label>
     </div>
     <div class="row"><button id="delete-all" class="btn danger" type="button">${icon(Trash2, 18)} Delete all learning data</button></div>
-    <p class="hint">Your key stays in this browser and is sent only to api.openai.com. Conversations and words live in this browser; export a backup to keep them. Backups are compatible with the iPhone app.</p>
+    <p class="hint">With the Codex provider no key is needed: voice, subtitles, assessments and lookups all run on the subscription through the local bridge. Your key stays in this browser and is sent only to api.openai.com. Conversations and words live in this browser; export a backup to keep them. Backups are compatible with the iPhone app.</p>
     <p id="store-error" class="error" hidden></p>
   </aside>`;
 

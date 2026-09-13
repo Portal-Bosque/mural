@@ -103,8 +103,7 @@ export class Coordinator {
     const prefs = this.store.preferences;
     // Each new conversation starts fresh; learned vocabulary and difficulty still carry forward.
     const instructions = TeachingPolicy.voice(this.language, learner, this.selectedTheme, prefs.interests, prefs.meaningLanguage);
-    this.trace(`connecting: ${this.language.name}${this.selectedTheme ? ' / ' + this.selectedTheme.title : ''} · challenge ${learner.challenge} · ${learner.words.length} words known · voice via ${voice.provider === 'codex' ? voice.model + ' (codex subscription)' : 'gpt-live-1 (API key)'}`);
-    if (voice.provider === 'codex' && !CredentialStore.hasKey) this.notice = 'Voice runs on the Codex subscription. Add an API key for meaning subtitles and learning assessments.';
+    this.trace(`connecting: ${this.language.name}${this.selectedTheme ? ' / ' + this.selectedTheme.title : ''} · challenge ${learner.challenge} · ${learner.words.length} words known · provider ${voice.provider === 'codex' ? 'codex subscription (' + voice.model + ' + gpt-5.6-luna via bridge)' : 'API key (gpt-live-1 + gpt-5.6-luna)'}`);
     this.onChange?.();
     try { await this.transport.connect(this.api, instructions, [], voice); }
     catch (e: any) {
