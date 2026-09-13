@@ -145,4 +145,7 @@ export const LanguageRegistry = {
 
 export const MeaningLanguages = {
   all: ['English', 'French', 'German', 'Spanish', 'Norwegian', 'Portuguese', 'Italian', 'Polish', 'Arabic', 'Ukrainian'],
+  greeting(language: string): string {
+    return ({ English: 'Hi!', French: 'Salut !', German: 'Hallo!', Spanish: '¡Hola!', Norwegian: 'Hei!', Portuguese: 'Olá!', Italian: 'Ciao!', Polish: 'Cześć!', Arabic: 'مرحبًا!', Ukrainian: 'Привіт!' } as Record<string, string>)[language] ?? 'Hi!';
+  },
 };

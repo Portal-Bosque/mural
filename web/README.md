@@ -22,6 +22,12 @@ Open http://localhost:5173, expand **Settings**, paste your OpenAI key, pick a l
 - Persistence in IndexedDB (one JSON document, like SwiftData in the app), Words and Conversations panels, export/import. The backup format is the iOS app's (schema 2, dates as seconds since 2001), so backups move between iPhone and web.
 - Mute, "simpler please", end, time limit and inactivity cut-off.
 
+## Design
+
+The layout follows the iPhone app (Talk / Themes / Words tabs, orb, meaning subtitle, theme cards, recall bars) using the Portal Bosque design system: paper `#F0F0EA`, forest green `#34504E`, accent `#DF441B`, earth `#643C37`, the `topic_*` tints for theme cards, Inter for UI text, PP Editorial New for display titles and Montiac for the wordmark and labels. Tokens live at the top of `src/style.css` and mirror `portal-agenda/tailwind.config.js`. Icons are Lucide, mapped from the app's SF Symbols in `src/main.ts`.
+
+The brand fonts are licensed, so `public/fonts/` is git-ignored: copy `Montiac-*.ttf` and `PPEditorialNew-*.otf` from portal-agenda before building, and deploys from this folder ship them. Without the files the page falls back to Inter and a system serif.
+
 ## Tests
 
 `npm test` runs the ported core suites (`Tests/LearningTests.swift`, `MeaningTests.swift`, `FinalAssessmentTests.swift`) on vitest.
