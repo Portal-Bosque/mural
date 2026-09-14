@@ -115,6 +115,7 @@ let sessionXP = 0, xpTicks = 0, saidCounted = 0, wordsCounted = new Set<string>(
 let startedAt = 0, talkedMs = 0, levelBefore = level(totalXP);
 let ticker: number | undefined;
 let explained: Record<string, string> = {}, explaining = false;
+let summarySession: ReturnType<typeof coordinator.store.session> = undefined; // frozen copy of the ended conversation; the coordinator resets its own 15 s later
 
 function show(next: Screen) { screen = next; for (const s of ['pick', 'talk', 'done'] as Screen[]) $(`screen-${s}`).hidden = s !== next; window.scrollTo({ top: 0 }); }
 function renderXP() {
@@ -136,7 +137,7 @@ function pick(t: KidsTheme) {
 $('topic-grid').onclick = e => { const id = (e.target as HTMLElement).closest<HTMLElement>('[data-theme]')?.dataset.theme; const t = kidsThemes.find(x => x.id === id); if (t) pick(t); };
 $('surprise').onclick = () => pick(randomKidsTheme());
 $('change-topic').onclick = () => { if (!coordinator.isRunning) { coordinator.resetConversation(); show('pick'); } };
-$('again').onclick = () => { coordinator.resetConversation(); show('pick'); renderTopics(); };
+$('again').onclick = () => { coordinator.resetConversation(); summarySession = undefined; show('pick'); renderTopics(); };
 
 const canStart = () => loadVoiceSettings().provider === 'codex' || CredentialStore.hasKey;
 $('big').onclick = () => {
@@ -180,11 +181,13 @@ function render() {
   big.classList.toggle('stop', active || c.state === 'connecting'); big.classList.toggle('busy', busy);
   big.innerHTML = active || c.state === 'connecting' ? `<span class="ico">${icon(Square, 40)}</span><span class="lbl">Stop</span>` : `<span class="ico">${icon(Mic, 44)}</span><span class="lbl">Talk!</span>`;
   $('change-topic').hidden = c.isRunning;
+  if (c.session && summarySession && c.session.id === summarySession.id) summarySession = c.session; // final assessment may update it
   if (c.state === 'ended' && screen === 'talk') showSummary();
   if (screen === 'done') renderSummary();
 }
 
 function showSummary() {
+  summarySession = coordinator.session;
   show('done');
   $('done-time').textContent = mmss(talkedMs);
   $('done-said').textContent = String(saidCounted);
@@ -194,7 +197,7 @@ function showSummary() {
 function renderSummary() {
   $('done-xp').textContent = `+${sessionXP}`;
   const words = new Map<string, { lemma: string; meaning: string; quote: string }>();
-  for (const a of coordinator.session?.assessments ?? []) for (const w of a.words) if (!words.has(w.lemma.toLowerCase())) words.set(w.lemma.toLowerCase(), { lemma: w.lemma, meaning: w.meaning, quote: w.quote });
+  for (const a of summarySession?.assessments ?? []) for (const w of a.words) if (!words.has(w.lemma.toLowerCase())) words.set(w.lemma.toLowerCase(), { lemma: w.lemma, meaning: w.meaning, quote: w.quote });
   const list = [...words.values()];
   const missing = list.filter(w => !(w.lemma.toLowerCase() in explained));
   if (missing.length && !explaining) {
@@ -202,7 +205,7 @@ function renderSummary() {
     coordinator.explainWords(missing, store.preferences.meaningLanguage).then(r => { explained = { ...explained, ...r }; }).catch(() => {}).finally(() => { explaining = false; renderSummary(); });
   }
   $('done-words').innerHTML = list.length ? list.map(w => `<li><b>${escape(w.lemma)}</b><span>${escape(explained[w.lemma.toLowerCase()] ?? w.meaning)}</span><small>“${escape(w.quote)}”</small></li>`).join('') : '';
-  const pending = coordinator.session && !list.length && (Date.now() - (coordinator.session.endedAt ?? Date.now())) < 20_000;
+  const pending = summarySession && !list.length && (Date.now() - (summarySession.endedAt ?? Date.now())) < 20_000;
   $('done-hint').textContent = list.length ? `${list.length} new word${list.length === 1 ? '' : 's'}! Use them again next time to make them stronger.` : pending ? 'Looking for your new words…' : (saidCounted ? 'Talk a little more next time to collect new words!' : 'Say something next time and you’ll collect words!');
   if (pending) setTimeout(renderSummary, 3000);
 }
