@@ -3,7 +3,8 @@ import { Archive, type SessionRecord, type Preferences, newArchive, correctFragm
 import { LearningEngine, type LearnerState } from './core/engine';
 import { LanguageRegistry, type LanguageModule } from './core/languages';
 
-const DB = 'mural', STORE = 'documents', KEY = 'mural-v1';
+const DB = 'mural', STORE = 'documents';
+export const ADULT_KEY = 'mural-v1', KIDS_KEY = 'mural-kids-v1';
 
 function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -29,22 +30,22 @@ export class LearningStore {
   onSessionInvalidation?: (id: string) => void;
   onChange?: () => void;
   private writing: Promise<void> = Promise.resolve();
-  private constructor(private db: IDBDatabase | null, archive: Archive) { this.archive = archive; }
+  private constructor(private db: IDBDatabase | null, archive: Archive, private key: string) { this.archive = archive; }
 
-  static async open(): Promise<LearningStore> {
+  static async open(key: string = ADULT_KEY): Promise<LearningStore> {
     let db: IDBDatabase | null = null, archive = newArchive(), error: string | undefined;
     try {
       db = await openDB();
-      const payload = await idb<string | undefined>(db, 'readonly', s => s.get(KEY));
+      const payload = await idb<string | undefined>(db, 'readonly', s => s.get(key));
       if (payload) archive = Archive.decode(payload);
     } catch (e: any) { error = `Mural couldn’t open its saved learning data (${e?.message ?? e}). Starting fresh; nothing will be overwritten until you save.`; }
     for (const s of archive.sessions) if (s.endedAt === undefined) { s.endedAt = Date.now(); s.endReason = 'App closed before finalization'; }
-    const store = new LearningStore(error ? null : db, archive);
+    const store = new LearningStore(error ? null : db, archive, key);
     store.error = error;
     if (!error) store.persist();
     return store;
   }
-  static inMemory(): LearningStore { return new LearningStore(null, newArchive()); }
+  static inMemory(): LearningStore { return new LearningStore(null, newArchive(), ADULT_KEY); }
 
   get preferences(): Preferences { return this.archive.preferences; }
   get language(): LanguageModule { return LanguageRegistry.module(this.preferences.learningLanguageID) ?? LanguageRegistry.all[0]; }
@@ -86,7 +87,7 @@ export class LearningStore {
     if (!this.db) return;
     let payload: string;
     try { payload = Archive.encode(this.archive); } catch { this.error = 'Mural couldn’t save your progress. Please export a backup and try again.'; return; }
-    this.writing = this.writing.then(() => idb(this.db!, 'readwrite', s => s.put(payload, KEY))).then(() => { this.error = undefined; },
+    this.writing = this.writing.then(() => idb(this.db!, 'readwrite', s => s.put(payload, this.key))).then(() => { this.error = undefined; },
       () => { this.error = 'Mural couldn’t save your progress. Please export a backup and try again.'; this.onChange?.(); });
   }
   flush() { return this.writing; }

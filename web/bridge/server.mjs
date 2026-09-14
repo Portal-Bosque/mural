@@ -176,6 +176,7 @@ const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '
 async function serveStatic(pathname, res) {
   const rel = normalize(decodeURIComponent(pathname)).replace(/^(\.\.[/\\])+/, '');
   let file = join(STATIC_DIR, rel === '/' || rel === '' ? 'index.html' : rel);
+  if (!extname(file)) { try { await stat(file + '.html'); file += '.html'; } catch {} } // /kids → kids.html
   if (!file.startsWith(STATIC_DIR)) { res.writeHead(403); return res.end(); }
   try { if ((await stat(file)).isDirectory()) file = join(file, 'index.html'); } catch { file = join(STATIC_DIR, 'index.html'); }
   try {

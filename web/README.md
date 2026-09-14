@@ -50,6 +50,10 @@ For a public deployment leave `CF_ACCESS_TEAM_DOMAIN` unset: the bridge then rel
 
 Alternatively `tailscale serve --bg --https=8791 http://127.0.0.1:8790` publishes the bridge to a tailnet; the page's CSP allows `https://*.ts.net`, and `VITE_BRIDGE_URL` can default a build to it. Chrome treats Tailscale's 100.64/10 range as a local network and asks once for Local Network Access from the deployed page.
 
+## Kids profile
+
+`/kids` (`kids.html`, `src/kids-main.ts`) is a separate profile for children aged 6 to 10: English only with meanings in Spanish, its own learning data (`mural-kids-v1`), 14 playful topics (`src/core/kids-themes.ts`), one big Talk/Stop button, XP that grows while they talk (1 XP per 5 seconds, 5 per thing said, 10 per new validated word, 100 XP per level, kept in `localStorage`), and a summary with time talked, XP, and the new words with child-friendly meanings from `gpt-5.6-luna`. The voice prompt is `TeachingPolicy.kidsVoice`: short sentences, choices, play, gentle recasts, no private questions. Grown-up settings (provider, key, meaning language, reset XP) sit behind the gear.
+
 ## Design
 
 The layout follows the iPhone app (Talk / Themes / Words tabs, orb, meaning subtitle, theme cards, recall bars) using the Portal Bosque design system: paper `#F0F0EA`, forest green `#34504E`, accent `#DF441B`, earth `#643C37`, the `topic_*` tints for theme cards, Inter for UI text, PP Editorial New for display titles and Montiac for the wordmark and labels. Tokens live at the top of `src/style.css` and mirror `portal-agenda/tailwind.config.js`. Icons are Lucide, mapped from the app's SF Symbols in `src/main.ts`.
