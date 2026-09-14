@@ -15,7 +15,7 @@ export class APIError extends Error {
     switch (kind) {
       case 'missingKey': return 'Add your OpenAI key in Settings to begin.';
       case 'invalidResponse': case 'incomplete': return 'OpenAI returned an incomplete response. Please try again.';
-      case 'refused': return 'Mural couldn’t complete that request. Try a different topic.';
+      case 'refused': return 'Eco couldn’t complete that request. Try a different topic.';
       case 'bridge': return 'The Codex bridge didn’t answer. Start it with `npm run bridge` in web/ and check the URL in Settings.';
     }
     if (status === 401) return 'Your OpenAI key wasn’t accepted. Check it in Settings.';

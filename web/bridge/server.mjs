@@ -1,4 +1,4 @@
-// Mural voice bridge: brokers gpt-live-1-codex realtime sessions through `codex app-server`, so the browser can use the
+// Eco voice bridge: brokers gpt-live-1-codex realtime sessions through `codex app-server`, so the browser can use the
 // ChatGPT/Codex subscription instead of an API key. The browser keeps talking WebRTC directly to OpenAI; only signalling
 // and the sideband events pass through here. Node ≥ 22, no dependencies.
 import { spawn } from 'node:child_process';
@@ -30,7 +30,7 @@ class AppServer {
     this.child.stderr.on('data', d => { const s = String(d); if (/ERROR|WARN/.test(s)) process.stderr.write('[codex] ' + s.replace(/\x1b\[[0-9;]*m/g, '')); });
     this.child.on('exit', code => { log('codex app-server exited', code); process.exit(1); });
     this.child.stdout.on('data', d => this.feed(String(d)));
-    const init = await this.request('initialize', { clientInfo: { name: 'mural-bridge', title: 'Mural voice bridge', version: '0.1.0' }, capabilities: { experimentalApi: true, requestAttestation: false } });
+    const init = await this.request('initialize', { clientInfo: { name: 'eco-bridge', title: 'Eco voice bridge', version: '0.1.0' }, capabilities: { experimentalApi: true, requestAttestation: false } });
     this.notify('initialized', {});
     const auth = await this.request('getAuthStatus', { includeToken: false, refreshToken: false });
     log(`codex app-server ready (${init.userAgent}); auth=${auth.authMethod}`);
@@ -45,7 +45,7 @@ class AppServer {
         const p = this.pending.get(msg.id); this.pending.delete(msg.id);
         msg.error ? p.reject(new Error(`${p.method}: ${msg.error.message ?? JSON.stringify(msg.error)}`)) : p.resolve(msg.result);
       } else if (msg.method && msg.id !== undefined) {
-        this.child.stdin.write(JSON.stringify({ jsonrpc: '2.0', id: msg.id, error: { code: -32601, message: 'not supported by mural-bridge' } }) + '\n');
+        this.child.stdin.write(JSON.stringify({ jsonrpc: '2.0', id: msg.id, error: { code: -32601, message: 'not supported by eco-bridge' } }) + '\n');
       } else if (msg.method) for (const l of this.listeners) l(msg.method, msg.params ?? {});
     }
   }
@@ -72,7 +72,7 @@ codex.on((method, params) => {
 
 async function createSession(body, ip = 'local') {
   await codex.ready;
-  if (activeGlobal() >= LIMITS.concurrentGlobal) throw Object.assign(new Error('Mural is busy right now; try again in a few minutes.'), { status: 429 });
+  if (activeGlobal() >= LIMITS.concurrentGlobal) throw Object.assign(new Error('Eco is busy right now; try again in a few minutes.'), { status: 429 });
   if (activeByIP(ip) >= LIMITS.concurrentPerIP) throw Object.assign(new Error('You already have a conversation running.'), { status: 429 });
   if (!allow(`sess:${ip}`, LIMITS.sessionsPerHourPerIP, 3600_000)) throw Object.assign(new Error('Conversation limit reached for now; try again later.'), { status: 429 });
   const session = body?.session ?? {}, transport = body?.transport ?? {};
@@ -119,7 +119,7 @@ async function proxyResponses(body, attempt = 0) {
   const { token, accountId } = await subscriptionAuth(attempt > 0);
   const { max_tool_calls: _a, max_output_tokens: _b, ...rest } = body ?? {}; // unsupported by the Codex backend
   const upstream = await fetch(CODEX_RESPONSES, { method: 'POST', signal: AbortSignal.timeout(120_000),
-    headers: { Authorization: `Bearer ${token}`, ...(accountId ? { 'chatgpt-account-id': accountId } : {}), 'Content-Type': 'application/json', 'User-Agent': 'codex_cli_rs/0.149.0 (mural-bridge)' },
+    headers: { Authorization: `Bearer ${token}`, ...(accountId ? { 'chatgpt-account-id': accountId } : {}), 'Content-Type': 'application/json', 'User-Agent': 'codex_cli_rs/0.149.0 (eco-bridge)' },
     body: JSON.stringify({ ...rest, stream: true }) });
   if (upstream.status === 401 && attempt === 0) { await upstream.body?.cancel(); return proxyResponses(body, 1); }
   if (!upstream.ok) { const detail = await upstream.text(); throw Object.assign(new Error(`codex backend ${upstream.status}: ${detail.slice(0, 300)}`), { status: upstream.status }); }
@@ -238,4 +238,4 @@ createServer(async (req, res) => {
     if (STATIC_DIR && req.method === 'GET' && !url.pathname.startsWith('/codex/')) return serveStatic(url.pathname, res);
     json(res, 404, { error: 'not found' }, origin);
   } catch (e) { log('error', e.message); json(res, e.status ?? 500, { error: e.message }, origin); }
-}).listen(PORT, HOST, () => log(`mural voice bridge on http://${HOST}:${PORT} → ${MODEL} via codex subscription${STATIC_DIR ? `; serving ${STATIC_DIR}` : ''}${CF_TEAM ? `; Cloudflare Access enforced (${CF_TEAM}${CF_AUD ? ', aud ' + CF_AUD.slice(0, 8) + '…' : ''})` : ''}`));
+}).listen(PORT, HOST, () => log(`eco voice bridge on http://${HOST}:${PORT} → ${MODEL} via codex subscription${STATIC_DIR ? `; serving ${STATIC_DIR}` : ''}${CF_TEAM ? `; Cloudflare Access enforced (${CF_TEAM}${CF_AUD ? ', aud ' + CF_AUD.slice(0, 8) + '…' : ''})` : ''}`));

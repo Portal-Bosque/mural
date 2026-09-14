@@ -1,6 +1,6 @@
-# Mural web
+# Eco
 
-Browser port of the Mural iPhone app. Same BYOK model: the page talks directly to OpenAI with your own API key, no Mural server involved.
+Eco is Portal Bosque's browser port of the [Eco](https://github.com/Chuloo/mural) iPhone app, a language app you learn through conversation. Same BYOK model: the page talks directly to OpenAI with your own API key, no server involved. The Mural name and logo belong to the original project; this fork is called Eco.
 
 ## Run
 

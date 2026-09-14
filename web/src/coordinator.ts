@@ -81,7 +81,7 @@ export class Coordinator {
     switch (this.state) {
       case 'idle': return 'Ready when you are';
       case 'connecting': return this.step ? `Getting comfortable… ${this.step}` : 'Getting comfortable…';
-      case 'active': return this.outputLevel > 0.02 ? 'Mural is speaking' : this.inputLevel > 0.02 ? 'I’m listening' : 'Take your time';
+      case 'active': return this.outputLevel > 0.02 ? 'Eco is speaking' : this.inputLevel > 0.02 ? 'I’m listening' : 'Take your time';
       case 'closing': return 'Saving our conversation…';
       case 'ended': return 'Until next time';
       case 'failed': return 'Let’s try again';
@@ -142,7 +142,7 @@ export class Coordinator {
     this.onChange?.();
   }
   retryMeaning() { this.scheduleTranslation(); this.meanings.retry(); }
-  help() { if (this.state !== 'active') return; this.append('instructions', TeachingPolicy.help(this.language)); this.notice = 'Mural will make that a little simpler.'; this.onChange?.(); }
+  help() { if (this.state !== 'active') return; this.append('instructions', TeachingPolicy.help(this.language)); this.notice = 'Eco will make that a little simpler.'; this.onChange?.(); }
   end(reason = 'Ended by you') {
     if (this.state !== 'active' && this.state !== 'connecting') return;
     const wasConnecting = this.state === 'connecting';
@@ -218,7 +218,7 @@ export class Coordinator {
         if (type === 'session.closed') { this.session.endReason = event.reason ?? this.session.endReason; this.finish(true); } else this.scheduleSave();
         break;
       }
-      case 'error': this.notice = 'A voice update was rejected. If Mural stops responding, end this conversation and start again.'; break;
+      case 'error': this.notice = 'A voice update was rejected. If Eco stops responding, end this conversation and start again.'; break;
     }
     this.onChange?.();
   }
@@ -227,7 +227,7 @@ export class Coordinator {
     this.timers.duration = window.setInterval(() => {
       if (this.state !== 'active' || !this.session) return;
       if (Date.now() - this.session.startedAt > this.store.preferences.sessionMinutes * 60_000) { this.notice = 'You’ve reached your conversation time limit.'; this.end('Time limit'); }
-      else if (Date.now() - this.lastActivity > 120_000) { this.notice = 'Mural ended this quiet session to avoid running up usage.'; this.end('Inactivity'); }
+      else if (Date.now() - this.lastActivity > 120_000) { this.notice = 'Eco ended this quiet session to avoid running up usage.'; this.end('Inactivity'); }
     }, 5000);
   }
   private scheduleTranslation() {

@@ -24,7 +24,7 @@ app.innerHTML = `
   <audio id="remote-audio" autoplay playsinline></audio>
   <div class="app">
     <header class="top">
-      <div class="brand"><span class="dot"></span>mural</div>
+      <div class="brand"><span class="dot"></span>eco</div>
       <button id="open-settings" class="icon-btn" type="button" aria-label="Settings">${icon(SlidersHorizontal)}</button>
     </header>
 
@@ -136,7 +136,7 @@ $<HTMLInputElement>('interests').onchange = e => store.updatePreferences(p => { 
 $<HTMLInputElement>('minutes').onchange = e => { const v = Math.min(60, Math.max(1, Math.round(Number((e.target as HTMLInputElement).value) || 15))); store.updatePreferences(p => { p.sessionMinutes = v; }); };
 $('export').onclick = () => {
   const blob = new Blob([store.exportData()], { type: 'application/json' });
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `mural-backup-${new Date().toISOString().slice(0, 10)}.json`; a.click();
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `eco-backup-${new Date().toISOString().slice(0, 10)}.json`; a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 };
 $<HTMLInputElement>('import').onchange = async e => {
@@ -205,7 +205,7 @@ function render() {
   else { right.innerHTML = icon(Captions); rightLabel.textContent = 'Transcript'; }
   $('btn-help').hidden = !active; $('welcome-line').hidden = active;
   const list = $('transcript');
-  const html = c.passages.map(p => `<li class="${p.speaker}"><span class="who">${p.speaker === 'user' ? 'You' : 'Mural'}</span><span>${escape(passageText(p))}</span></li>`).join('');
+  const html = c.passages.map(p => `<li class="${p.speaker}"><span class="who">${p.speaker === 'user' ? 'You' : 'Eco'}</span><span>${escape(passageText(p))}</span></li>`).join('');
   if (list.innerHTML !== html) { list.innerHTML = html; list.lastElementChild?.scrollIntoView({ block: 'nearest' }); }
   if (!c.session) $('lookup').hidden = true;
   const log = $('log'); const text = c.log.slice(-80).join('\n'); if (log.textContent !== text) { log.textContent = text; log.scrollTop = log.scrollHeight; }

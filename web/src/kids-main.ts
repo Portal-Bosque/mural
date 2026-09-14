@@ -26,7 +26,7 @@ app.innerHTML = `
   <audio id="remote-audio" autoplay playsinline></audio>
   <div class="app kids-app">
     <header class="top">
-      <div class="brand"><span class="dot"></span>mural <span class="kids-tag">kids</span></div>
+      <div class="brand"><span class="dot"></span>eco <span class="kids-tag">kids</span></div>
       <div class="xp-badge" id="xp-badge"><span class="star">${icon(Star, 20)}</span><b id="xp-total">0</b> XP · <span id="xp-level">Level 1</span></div>
       <button id="open-settings" class="icon-btn" type="button" aria-label="Grown-ups">${icon(Settings, 22)}</button>
     </header>
@@ -79,7 +79,7 @@ app.innerHTML = `
     <label id="key-row">OpenAI API key <input id="key" type="password" autocomplete="off" placeholder="sk-…" /></label>
     <div class="row"><button id="save-key" class="btn" type="button">${icon(Check, 18)} Save key</button><span id="key-status" class="status-line"></span></div>
     <label>Meanings in <select id="meaning-language"></select></label>
-    <div class="row"><button id="reset-xp" class="btn danger" type="button">Reset XP</button><a class="btn secondary" href="/">Grown-up Mural</a></div>
+    <div class="row"><button id="reset-xp" class="btn danger" type="button">Reset XP</button><a class="btn secondary" href="/">Grown-up Eco</a></div>
   </aside>`;
 
 // ---------- Store & coordinator ----------
@@ -171,7 +171,7 @@ function render() {
   const buddy = $('buddy'); buddy.dataset.state = c.state; buddy.dataset.who = c.outputLevel > c.inputLevel ? 'assistant' : 'user';
   buddy.style.setProperty('--level', Math.max(c.inputLevel, c.outputLevel).toFixed(3));
   $('buddy-face').textContent = c.state === 'connecting' ? '😮' : c.state === 'active' ? (c.outputLevel > 0.05 ? '😃' : c.inputLevel > 0.05 ? '👂' : '🙂') : c.state === 'failed' ? '😅' : '🙂';
-  $('status').textContent = c.state === 'idle' ? 'Press the button and say hi!' : c.state === 'connecting' ? 'Getting ready…' : c.state === 'active' ? (c.outputLevel > 0.02 ? 'Mural is talking' : c.inputLevel > 0.02 ? 'I hear you!' : 'Your turn!') : c.state === 'closing' ? 'Saving…' : c.state === 'ended' ? 'Bye for now!' : 'Oops, let’s try again';
+  $('status').textContent = c.state === 'idle' ? 'Press the button and say hi!' : c.state === 'connecting' ? 'Getting ready…' : c.state === 'active' ? (c.outputLevel > 0.02 ? 'Eco is talking' : c.inputLevel > 0.02 ? 'I hear you!' : 'Your turn!') : c.state === 'closing' ? 'Saving…' : c.state === 'ended' ? 'Bye for now!' : 'Oops, let’s try again';
   $('caption').textContent = c.session ? c.caption : theme ? `Let’s talk about ${theme.title.toLowerCase()}!` : 'Hi!';
   const meaning = $('meaning'); meaning.hidden = !(p.meaningVisible && c.meaning); meaning.textContent = c.meaning;
   const you = c.userPassage; $('you').hidden = !you; if (you) $('you').innerHTML = `<b>You:</b> ${escape(passageText(you))}`;

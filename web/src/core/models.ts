@@ -100,8 +100,8 @@ export class ArchiveError extends Error {
   constructor(public kind: 'tooLarge' | 'unsupportedVersion' | 'unsupportedLanguage' | 'invalid') {
     super({
       tooLarge: 'This backup is too large to import.',
-      unsupportedVersion: 'This backup needs a newer version of Mural.',
-      unsupportedLanguage: 'This backup contains a language module that this version of Mural does not support.',
+      unsupportedVersion: 'This backup needs a newer version of Eco.',
+      unsupportedLanguage: 'This backup contains a language module that this version of Eco does not support.',
       invalid: 'This backup has invalid or duplicate records.',
     }[kind]); this.name = 'ArchiveError';
   }

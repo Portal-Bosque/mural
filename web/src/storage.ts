@@ -38,7 +38,7 @@ export class LearningStore {
       db = await openDB();
       const payload = await idb<string | undefined>(db, 'readonly', s => s.get(key));
       if (payload) archive = Archive.decode(payload);
-    } catch (e: any) { error = `Mural couldn’t open its saved learning data (${e?.message ?? e}). Starting fresh; nothing will be overwritten until you save.`; }
+    } catch (e: any) { error = `Eco couldn’t open its saved learning data (${e?.message ?? e}). Starting fresh; nothing will be overwritten until you save.`; }
     for (const s of archive.sessions) if (s.endedAt === undefined) { s.endedAt = Date.now(); s.endReason = 'App closed before finalization'; }
     const store = new LearningStore(error ? null : db, archive, key);
     store.error = error;
@@ -86,9 +86,9 @@ export class LearningStore {
     this.onChange?.();
     if (!this.db) return;
     let payload: string;
-    try { payload = Archive.encode(this.archive); } catch { this.error = 'Mural couldn’t save your progress. Please export a backup and try again.'; return; }
+    try { payload = Archive.encode(this.archive); } catch { this.error = 'Eco couldn’t save your progress. Please export a backup and try again.'; return; }
     this.writing = this.writing.then(() => idb(this.db!, 'readwrite', s => s.put(payload, this.key))).then(() => { this.error = undefined; },
-      () => { this.error = 'Mural couldn’t save your progress. Please export a backup and try again.'; this.onChange?.(); });
+      () => { this.error = 'Eco couldn’t save your progress. Please export a backup and try again.'; this.onChange?.(); });
   }
   flush() { return this.writing; }
 }
