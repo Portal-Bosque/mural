@@ -174,6 +174,7 @@ async function accessGate(req) {
 // ---------- static page ----------
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.ttf': 'font/ttf', '.otf': 'font/otf', '.woff2': 'font/woff2', '.woff': 'font/woff', '.txt': 'text/plain' };
 async function serveStatic(pathname, res) {
+  if (pathname === '/kids' || pathname === '/kids/') { res.writeHead(302, { Location: '/' }); return res.end(); } // kids is the default now
   const rel = normalize(decodeURIComponent(pathname)).replace(/^(\.\.[/\\])+/, '');
   let file = join(STATIC_DIR, rel === '/' || rel === '' ? 'index.html' : rel);
   if (!extname(file)) { try { await stat(file + '.html'); file += '.html'; } catch {} } // /kids → kids.html

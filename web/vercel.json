@@ -1,1 +1,10 @@
-{ "cleanUrls": true }
+{
+  "cleanUrls": true,
+  "redirects": [
+    {
+      "source": "/kids",
+      "destination": "/",
+      "permanent": false
+    }
+  ]
+}

@@ -52,7 +52,7 @@ Alternatively `tailscale serve --bg --https=8791 http://127.0.0.1:8790` publishe
 
 ## Kids profile
 
-`/kids` (`kids.html`, `src/kids-main.ts`) is a separate profile for children aged 6 to 10: English only with meanings in Spanish, its own learning data (`mural-kids-v1`), 14 playful topics (`src/core/kids-themes.ts`), one big Talk/Stop button, XP that grows while they talk (1 XP per 5 seconds, 5 per thing said, 10 per new validated word, 100 XP per level, kept in `localStorage`), and a summary with time talked, XP, and the new words with child-friendly meanings from `gpt-5.6-luna`. The voice prompt is `TeachingPolicy.kidsVoice`: short sentences, choices, play, gentle recasts, no private questions. Grown-up settings (provider, key, meaning language, reset XP) sit behind the gear.
+Eco Kids is the default at `/` (`index.html`, `src/kids-main.ts`); the full app lives at `/app` (`app.html`, `src/main.ts`), and `/kids` redirects to `/`. It is a separate profile for children aged 6 to 10: English only with meanings in Spanish, its own learning data (`mural-kids-v1`), 14 playful topics (`src/core/kids-themes.ts`), one big Talk/Stop button, XP that grows while they talk (1 XP per 5 seconds, 5 per thing said, 10 per new validated word, 100 XP per level, kept in `localStorage`), and a summary with time talked, XP, and the new words with child-friendly meanings from `gpt-5.6-luna`. The voice prompt is `TeachingPolicy.kidsVoice`: short sentences, choices, play, gentle recasts, no private questions. Grown-up settings (provider, key, meaning language, reset XP) sit behind the gear.
 
 ## Design
 

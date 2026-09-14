@@ -79,7 +79,7 @@ app.innerHTML = `
     <label id="key-row">OpenAI API key <input id="key" type="password" autocomplete="off" placeholder="sk-…" /></label>
     <div class="row"><button id="save-key" class="btn" type="button">${icon(Check, 18)} Save key</button><span id="key-status" class="status-line"></span></div>
     <label>Meanings in <select id="meaning-language"></select></label>
-    <div class="row"><button id="reset-xp" class="btn danger" type="button">Reset XP</button><a class="btn secondary" href="/">Grown-up Eco</a></div>
+    <div class="row"><button id="reset-xp" class="btn danger" type="button">Reset XP</button><a class="btn secondary" href="/app">Full Eco</a></div>
   </aside>`;
 
 // ---------- Store & coordinator ----------
